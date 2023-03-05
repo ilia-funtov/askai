@@ -6,11 +6,11 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/mattn/go-isatty"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 func getProgramUserDir() (string, error) {
@@ -64,43 +64,64 @@ func readPromptFromStdin(po *ProgramOptions) (string, error) {
 	return strings.TrimSpace(stdinPrompt), nil
 }
 
-func makePrompt(po *ProgramOptions, stdinPrompt string) string {
-	if po.cmdPrompt != "" && stdinPrompt != "" {
-		return po.cmdPrompt + "\n" + stdinPrompt
-	} else if po.cmdPrompt != "" {
-		return po.cmdPrompt
-	} else if stdinPrompt != "" {
-		return stdinPrompt
+func initLoggingToFile(programName string, configDir string, logFileDir string) *os.File {
+	logLevel := log.InfoLevel
+
+	log.SetLevel(logLevel)
+
+	viper := viper.New()
+
+	viper.SetConfigName(programName)
+	viper.AddConfigPath(configDir)
+
+	err := viper.ReadInConfig()
+
+	if err == nil {
+		dir := viper.GetString("logdir")
+		if dir != "" {
+			dir, err = filepath.Abs(dir)
+			if err == nil {
+				logFileDir = dir
+			}
+		}
+
+		levelStr := viper.GetString("level")
+		level, err := log.ParseLevel(levelStr)
+		if err == nil {
+			logLevel = level
+		}
+
+		if viper.GetString("formatter") == "json" {
+			log.SetFormatter(&log.JSONFormatter{})
+		}
+	} else {
+		log.Warningf("failed to read log config file: %v", err)
 	}
 
-	return ""
+	logFilePath := filepath.Join(logFileDir, defaultLogFileName)
+
+	return initLoggingToFileConfigless(logFilePath, logLevel)
 }
 
-func initLoggingToFile(logFilePath string) *os.File {
+func initLoggingToFileConfigless(logFilePath string, level log.Level) *os.File {
 	dirPath := filepath.Dir(logFilePath)
 
 	if fileInfo, err := os.Stat(dirPath); os.IsNotExist(err) || !fileInfo.IsDir() {
 		err := os.MkdirAll(dirPath, 0770)
 		if err != nil {
-			log.Errorf("failed to create log directory: %v", err)
+			log.Warningf("failed to create log directory: %v", err)
 			return nil
 		}
 	}
 
-	logFile, err := os.Create(logFilePath)
+	logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
 	if err != nil {
-		log.Warningf("failed to create log file: %v\n", err)
+		log.Warningf("failed to create log file: %v", err)
 	}
 
 	if logFile != nil {
-		runtime.SetFinalizer(
-			logFile,
-			func(logFile *os.File) {
-				log.SetOutput(os.Stderr)
-			})
-
 		log.SetOutput(logFile)
-		log.SetLevel(log.InfoLevel)
+		log.SetLevel(level)
 	}
 
 	return logFile
@@ -119,4 +140,16 @@ func splitEngineName(engineName string) (string, string, error) {
 	}
 
 	return aiProvider, aiModel, nil
+}
+
+func makePrompt(po *ProgramOptions, stdinPrompt string) string {
+	if po.cmdPrompt != "" && stdinPrompt != "" {
+		return po.cmdPrompt + "\n" + stdinPrompt
+	} else if po.cmdPrompt != "" {
+		return po.cmdPrompt
+	} else if stdinPrompt != "" {
+		return stdinPrompt
+	}
+
+	return ""
 }

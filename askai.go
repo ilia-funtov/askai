@@ -19,17 +19,25 @@ func run() error {
 		return err
 	}
 
-	logFilePath := filepath.Join(
+	// log file path if it is not set in config file
+	altLogFileDir := filepath.Join(
 		userProgramDir,
-		defaultLogDir,
-		defaultLogFileName)
+		defaultLogDir)
 
-	logFile := initLoggingToFile(logFilePath)
+	configDir := filepath.Join(
+		userProgramDir,
+		defaultConfigDir)
+
+	logFile := initLoggingToFile(
+		programName,
+		configDir,
+		altLogFileDir)
+
 	if logFile != nil {
 		defer logFile.Close()
 	}
 
-	log.Tracef("Program options: %v\n", po)
+	log.Debugf("Program options: %v", po)
 
 	apiKeysConfigFilePath := filepath.Join(
 		userProgramDir,
@@ -41,20 +49,23 @@ func run() error {
 		return err
 	}
 
-	stdinPrompt, err := readPromptFromStdin(&po)
-	if err != nil {
-		return err
+	var stdinPrompt string
+	if !po.noStdin {
+		stdinPrompt, err = readPromptFromStdin(&po)
+		if err != nil {
+			return err
+		}
 	}
 
 	prompt := makePrompt(&po, stdinPrompt)
-	log.Tracef("Prompt: %s\n", prompt)
+	log.Debugf("Prompt: %s", prompt)
 
 	if prompt == "" {
 		return fmt.Errorf("prompt to AI is empty")
 	}
 
 	if po.printPrompt {
-		fmt.Printf("Prompt: %s\n", prompt)
+		fmt.Printf("Prompt: %s", prompt)
 	}
 
 	responseMap, err := askAI(po.engines, prompt, apiKeys)
@@ -63,8 +74,9 @@ func run() error {
 	}
 
 	for engineKey, responses := range responseMap {
-		log.Tracef("Engine: %s\n", engineKey)
-		log.Tracef("Responses: %v\n", responses)
+		log.Debugf("Engine: %s", engineKey)
+		log.Debugf("Number of responses: %d", len(responses))
+		log.Tracef("Responses: %v", responses)
 
 		if po.printAIEngine {
 			fmt.Printf(defaultPrintAIEngineTemplate, engineKey)
@@ -78,7 +90,6 @@ func run() error {
 }
 
 func init() {
-	log.SetFormatter(&log.TextFormatter{})
 	log.SetOutput(os.Stderr)
 	log.SetLevel(log.WarnLevel)
 }

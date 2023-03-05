@@ -48,7 +48,7 @@ func askAI(engines []string, prompt string, apiKeys map[string]string) (map[stri
 		if err == nil {
 			result[engineKey] = responses
 		} else {
-			log.Errorf("Engine %s: %v\n", engineKey, err)
+			log.Errorf("Engine %s: %v", engineKey, err)
 		}
 	}
 

@@ -12,6 +12,7 @@ type ProgramOptions struct {
 	batchMode     bool
 	printAIEngine bool
 	printPrompt   bool
+	noStdin       bool
 }
 
 func (po *ProgramOptions) add() {
@@ -20,6 +21,7 @@ func (po *ProgramOptions) add() {
 	flag.StringVar(&po.aiEngineList, "engine", defaultEngine, "AI engine to use")
 	flag.BoolVar(&po.printAIEngine, "printengine", false, "Print engine name in output")
 	flag.BoolVar(&po.printPrompt, "printprompt", false, "Print prompt in output")
+	flag.BoolVar(&po.noStdin, "nostdin", false, "Skip reading prompt from stdin")
 }
 
 func (po *ProgramOptions) parse() {
