@@ -11,4 +11,5 @@ const defaultEngine = "openai:gpt-3.5-turbo"
 
 var defaultProviderModel = map[string]string{
 	"openai": "gpt-3.5-turbo",
+	"cohere": "command-xlarge-nightly",
 }

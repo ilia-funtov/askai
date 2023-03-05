@@ -16,11 +16,11 @@ type ProgramOptions struct {
 }
 
 func (po *ProgramOptions) add() {
-	flag.StringVar(&po.cmdPrompt, "prompt", "", "Prompt to AI")
-	flag.BoolVar(&po.batchMode, "batch", false, "Batch mode, do not ask for prompt if stdin is empty")
-	flag.StringVar(&po.aiEngineList, "engine", defaultEngine, "AI engine to use")
-	flag.BoolVar(&po.printAIEngine, "printengine", false, "Print engine name in output")
-	flag.BoolVar(&po.printPrompt, "printprompt", false, "Print prompt in output")
+	flag.StringVar(&po.cmdPrompt, "p", "", "Prompt to AI")
+	flag.BoolVar(&po.batchMode, "b", false, "Batch mode, do not ask for prompt if stdin is empty")
+	flag.StringVar(&po.aiEngineList, "e", defaultEngine, "AI engine to use")
+	flag.BoolVar(&po.printAIEngine, "pe", false, "Print engine name in output")
+	flag.BoolVar(&po.printPrompt, "pp", false, "Print prompt in output")
 	flag.BoolVar(&po.noStdin, "nostdin", false, "Skip reading prompt from stdin")
 }
 

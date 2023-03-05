@@ -67,8 +67,6 @@ func readPromptFromStdin(po *ProgramOptions) (string, error) {
 func initLoggingToFile(programName string, configDir string, logFileDir string) *os.File {
 	logLevel := log.InfoLevel
 
-	log.SetLevel(logLevel)
-
 	viper := viper.New()
 
 	viper.SetConfigName(programName)

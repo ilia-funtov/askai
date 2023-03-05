@@ -10,6 +10,7 @@ type AskAIFunction func(string, string, string) ([]string, error)
 
 var engineMap = map[string]AskAIFunction{
 	"openai": askOpenAI,
+	"cohere": askCohere,
 }
 
 func askAI(engines []string, prompt string, apiKeys map[string]string) (map[string][]string, error) {
@@ -44,6 +45,7 @@ func askAI(engines []string, prompt string, apiKeys map[string]string) (map[stri
 		}
 
 		engineKey := fmt.Sprintf("%s:%s", aiProvider, aiModel)
+		log.Infof("Asking %s: %s", engineKey, prompt)
 		responses, err := engineFunc(prompt, aiModel, apiKey)
 		if err == nil {
 			result[engineKey] = responses

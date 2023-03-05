@@ -58,7 +58,7 @@ func run() error {
 	}
 
 	prompt := makePrompt(&po, stdinPrompt)
-	log.Debugf("Prompt: %s", prompt)
+	log.Infof("Prompt: %s", prompt)
 
 	if prompt == "" {
 		return fmt.Errorf("prompt to AI is empty")
@@ -74,8 +74,8 @@ func run() error {
 	}
 
 	for engineKey, responses := range responseMap {
-		log.Debugf("Engine: %s", engineKey)
-		log.Debugf("Number of responses: %d", len(responses))
+		log.Infof("Engine: %s", engineKey)
+		log.Infof("Number of responses: %d", len(responses))
 		log.Tracef("Responses: %v", responses)
 
 		if po.printAIEngine {
@@ -91,7 +91,7 @@ func run() error {
 
 func init() {
 	log.SetOutput(os.Stderr)
-	log.SetLevel(log.WarnLevel)
+	log.SetLevel(log.InfoLevel)
 }
 
 func main() {
