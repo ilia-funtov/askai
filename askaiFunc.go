@@ -8,7 +8,7 @@ import (
 
 type AskAIFunction func(string, string, string) ([]string, error)
 
-var engineMap = map[string]AskAIFunction{
+var engineFuncMap = map[string]AskAIFunction{
 	"openai": askOpenAI,
 	"cohere": askCohere,
 }
@@ -34,7 +34,7 @@ func askAI(engines []string, prompt string, apiKeys map[string]string) (map[stri
 			}
 		}
 
-		engineFunc, exists := engineMap[aiProvider]
+		engineFunc, exists := engineFuncMap[aiProvider]
 		if !exists {
 			return nil, fmt.Errorf("no engine found for %s", aiProvider)
 		}

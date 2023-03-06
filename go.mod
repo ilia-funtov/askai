@@ -8,6 +8,7 @@ require (
 	github.com/sashabaranov/go-gpt3 v1.3.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.15.0
+	golang.org/x/exp v0.0.0-20230304125523-9ff063c70017
 )
 
 require (
