@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	gogpt "github.com/sashabaranov/go-gpt3"
 )
@@ -10,10 +9,9 @@ import (
 func askOpenAIChatCompletionModel(prompt string, model string, apiKey string) ([]string, error) {
 	const MaxTokensGPT3dot5Chat = 4096
 
-	tokensInPrompt := len(prompt)
-	maxTokens := int(MaxTokensGPT3dot5Chat - tokensInPrompt)
-	if maxTokens <= 0 {
-		return nil, fmt.Errorf("too many tokens to process")
+	maxTokens, err := calcModelMaxResponseSize(prompt, MaxTokensGPT3dot5Chat)
+	if err != nil {
+		return nil, err
 	}
 
 	ctx := context.Background()
@@ -46,10 +44,9 @@ func askOpenAIChatCompletionModel(prompt string, model string, apiKey string) ([
 func askOpenAICompletionModel(prompt string, model string, apiKey string) ([]string, error) {
 	const MaxTokensGPT3dot5 = 4000
 
-	tokensInPrompt := len(prompt)
-	maxTokens := int(MaxTokensGPT3dot5 - tokensInPrompt)
-	if maxTokens <= 0 {
-		return nil, fmt.Errorf("too many tokens to process")
+	maxTokens, err := calcModelMaxResponseSize(prompt, MaxTokensGPT3dot5)
+	if err != nil {
+		return nil, err
 	}
 
 	ctx := context.Background()

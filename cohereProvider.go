@@ -1,18 +1,15 @@
 package main
 
 import (
-	"fmt"
-
 	cohere "github.com/cohere-ai/cohere-go"
 )
 
 func askCohere(prompt string, model string, apiKey string) ([]string, error) {
 	const MaxTokensCohere = 2048
 
-	tokensInPrompt := len(prompt)
-	maxTokens := int(MaxTokensCohere - tokensInPrompt)
-	if maxTokens <= 0 {
-		return nil, fmt.Errorf("too many tokens to process")
+	maxTokens, err := calcModelMaxResponseSize(prompt, MaxTokensCohere)
+	if err != nil {
+		return nil, err
 	}
 
 	client, err := cohere.CreateClient(apiKey)
