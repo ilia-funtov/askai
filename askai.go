@@ -28,14 +28,10 @@ func run() error {
 		userProgramDir,
 		defaultConfigDir)
 
-	logFile := initLoggingToFile(
+	initLoggingToFile(
 		programName,
 		configDir,
 		altLogFileDir)
-
-	if logFile != nil {
-		defer logFile.Close()
-	}
 
 	log.Debugf("Program options: %v", po)
 
@@ -97,6 +93,7 @@ func init() {
 func main() {
 	if err := run(); err != nil {
 		log.Errorln(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

@@ -7,7 +7,7 @@ const defaultLogDir = "log"
 const defaultApiKeysConfigFileName = "apikeys.conf"
 const defaultLogFileName = programName + ".log"
 const defaultPrintAIEngineTemplate = "#%s#\n"
-const defaultEngine = "openai:gpt-3.5-turbo"
+const defaultEngine = "cohere:command-xlarge-nightly"
 
 var defaultProviderModel = map[string]string{
 	"openai": "gpt-3.5-turbo",

@@ -7,6 +7,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/mattn/go-isatty"
 	log "github.com/sirupsen/logrus"
@@ -53,7 +54,12 @@ func readPromptFromStdin(po *ProgramOptions) (string, error) {
 				return "", fmt.Errorf("failed to read prompt from stdin: %v", err)
 			}
 
-			text := scanner.Text()
+			data := scanner.Bytes()
+			if !utf8.Valid(data) {
+				return "", fmt.Errorf("input from stdin is not valid utf-8")
+			}
+
+			text := string(data)
 			if stdinPrompt != "" && text != "" {
 				stdinPrompt += "\n"
 			}
