@@ -2,23 +2,29 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
+	"reflect"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 func readApiKeys(path string, po *ProgramOptions) (map[string]string, error) {
-	apiConfigFile, err := os.Open(path)
-	if apiConfigFile != nil {
-		defer apiConfigFile.Close()
-	}
+	v := viper.New()
+
+	dir, filename := filepath.Split(path)
+	v.SetConfigName(filename)
+	v.AddConfigPath(dir)
 
 	apiKeys := make(map[string]string)
 
+	err := v.ReadInConfig()
+
 	if err != nil {
-		if !po.batchMode && errors.Is(err, os.ErrNotExist) {
+		errtype := reflect.TypeOf(err)
+		if !po.batchMode && errtype == reflect.TypeOf(viper.ConfigFileNotFoundError{}) {
 			// Create config file for api keys. Iterate over all providers and ask for each one.
 
 			reader := bufio.NewReader(os.Stdin)
@@ -47,44 +53,26 @@ func readApiKeys(path string, po *ProgramOptions) (map[string]string, error) {
 			}
 
 			if len(apiKeys) != 0 {
-				jsonContent, err := json.Marshal(apiKeys)
-				if err != nil {
-					return nil, fmt.Errorf("failed to serialize API keys to JSON: %v", err)
+				for provider, apiKey := range apiKeys {
+					v.Set(provider, apiKey)
 				}
 
-				apiConfigFile, err = os.Create(path)
-				if err != nil {
-					return nil, fmt.Errorf("failed to create API keys config file: %v", err)
+				ext := filepath.Ext(path)
+				if ext == "" {
+					if !strings.HasSuffix(path, ".") {
+						path += "."
+					}
+					path += defaultApiKeysConfigExtension
 				}
-				defer apiConfigFile.Close()
-
-				_, err = apiConfigFile.Write(jsonContent)
-				if err != nil {
-					return nil, fmt.Errorf("failed to write API keys to config file: %v", err)
-				}
+				v.WriteConfigAs(path)
 			}
 		} else {
 			return nil, fmt.Errorf("failed to open config file with API keys %s: %v", path, err)
 		}
 	} else {
-		fileInfo, err := os.Stat(path)
-		if err != nil {
-			return nil, fmt.Errorf("failed to stat API keys config file: %v", err)
-		}
-
-		if fileInfo.Size() == 0 {
-			return nil, fmt.Errorf("API keys config file is empty")
-		}
-
-		buffer := make([]byte, fileInfo.Size())
-		_, err = apiConfigFile.Read(buffer)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read API keys from config file: %v", err)
-		}
-
-		err = json.Unmarshal(buffer, &apiKeys)
-		if err != nil {
-			return nil, fmt.Errorf("failed to deserialize API keys from JSON: %v", err)
+		allKeys := v.AllKeys()
+		for _, key := range allKeys {
+			apiKeys[key] = v.GetString(key)
 		}
 	}
 
