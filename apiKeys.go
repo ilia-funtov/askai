@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -25,8 +26,6 @@ func readApiKeys(path string, po *ProgramOptions) (map[string]string, error) {
 	if err != nil {
 		errtype := reflect.TypeOf(err)
 		if !po.batchMode && errtype == reflect.TypeOf(viper.ConfigFileNotFoundError{}) {
-			// Create config file for api keys. Iterate over all providers and ask for each one.
-
 			reader := bufio.NewReader(os.Stdin)
 			if reader == nil {
 				return nil, fmt.Errorf("bufio.NewReader failed")
@@ -41,7 +40,7 @@ func readApiKeys(path string, po *ProgramOptions) (map[string]string, error) {
 				fmt.Printf("Enter API key for %s:\n", aiProvider)
 				apiKey, err := reader.ReadString('\n')
 				if err != nil {
-					return nil, fmt.Errorf("failed to read API key from stdin: %v", err)
+					return nil, fmt.Errorf("failed to read API key from stdin: %w", err)
 				}
 
 				apiKey = strings.TrimSpace(apiKey)
@@ -62,12 +61,16 @@ func readApiKeys(path string, po *ProgramOptions) (map[string]string, error) {
 					if !strings.HasSuffix(path, ".") {
 						path += "."
 					}
-					path += defaultApiKeysConfigExtension
+					path += defaultAPIKeysConfigExtension
 				}
-				v.WriteConfigAs(path)
+
+				err = v.WriteConfigAs(path)
+				if err != nil {
+					log.Warnf("failed to write API keys to %s: %v", path, err)
+				}
 			}
 		} else {
-			return nil, fmt.Errorf("failed to open config file with API keys %s: %v", path, err)
+			return nil, fmt.Errorf("failed to open config file with API keys %s: %w", path, err)
 		}
 	} else {
 		allKeys := v.AllKeys()

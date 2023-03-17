@@ -34,7 +34,7 @@ func (po *ProgramOptions) parse() {
 	po.aiEngineList = strings.ToLower(po.aiEngineList)
 
 	if po.allEngines {
-		po.engines = maps.Keys(engineFuncMap)
+		po.engines = maps.Keys(engineMap)
 	} else {
 		engines := strings.Split(po.aiEngineList, ",")
 		engineMap := make(map[string]bool)

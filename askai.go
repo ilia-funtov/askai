@@ -38,7 +38,7 @@ func run() error {
 	apiKeysConfigFilePath := filepath.Join(
 		userProgramDir,
 		defaultConfigDir,
-		defaultApiKeysConfigFileName)
+		defaultAPIKeysConfigFileName)
 
 	apiKeys, err := readApiKeys(apiKeysConfigFilePath, &po)
 	if err != nil {
@@ -53,7 +53,9 @@ func run() error {
 		}
 	}
 
-	prompt := makePrompt(&po, stdinPrompt)
+	message := UserMessage{Prompt: po.cmdPrompt, Context: stdinPrompt}
+	prompt := message.GetFullPrompt()
+
 	log.Infof("Prompt: %s", prompt)
 
 	if prompt == "" {
@@ -64,9 +66,9 @@ func run() error {
 		fmt.Printf("Prompt: %s", prompt)
 	}
 
-	responseMap, err := askAI(po.engines, prompt, apiKeys)
+	responseMap, err := askAI(po.engines, message, apiKeys)
 	if err != nil {
-		return fmt.Errorf("failed to ask AI: %v", err)
+		return fmt.Errorf("failed to ask AI: %w", err)
 	}
 
 	for engineKey, responses := range responseMap {
@@ -85,12 +87,10 @@ func run() error {
 	return nil
 }
 
-func init() {
+func main() {
 	log.SetOutput(os.Stderr)
 	log.SetLevel(log.InfoLevel)
-}
 
-func main() {
 	if err := run(); err != nil {
 		log.Errorln(err)
 		fmt.Fprintln(os.Stderr, err)

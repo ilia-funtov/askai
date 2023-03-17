@@ -17,7 +17,7 @@ import (
 func getProgramUserDir() (string, error) {
 	user, err := user.Current()
 	if err != nil {
-		return "", fmt.Errorf("failed to get current user: %v", err)
+		return "", fmt.Errorf("failed to get current user: %w", err)
 	}
 
 	return filepath.Join(user.HomeDir, "."+programName), nil
@@ -40,7 +40,7 @@ func readPromptFromStdin(po *ProgramOptions) (string, error) {
 			var err error
 			stdinPrompt, err = reader.ReadString('\n')
 			if err != nil {
-				return "", fmt.Errorf("failed to read prompt from stdin: %v", err)
+				return "", fmt.Errorf("failed to read prompt from stdin: %w", err)
 			}
 		}
 	} else {
@@ -51,7 +51,7 @@ func readPromptFromStdin(po *ProgramOptions) (string, error) {
 
 		for scanner.Scan() {
 			if err := scanner.Err(); err != nil {
-				return "", fmt.Errorf("failed to read prompt from stdin: %v", err)
+				return "", fmt.Errorf("failed to read prompt from stdin: %w", err)
 			}
 
 			data := scanner.Bytes()
@@ -114,6 +114,7 @@ func initLoggingToFileConfigless(logFilePath string, level log.Level) *os.File {
 		err := os.MkdirAll(dirPath, 0770)
 		if err != nil {
 			log.Warningf("failed to create log directory: %v", err)
+
 			return nil
 		}
 	}
@@ -146,13 +147,13 @@ func splitEngineName(engineName string) (string, string, error) {
 	return aiProvider, aiModel, nil
 }
 
-func makePrompt(po *ProgramOptions, stdinPrompt string) string {
-	if po.cmdPrompt != "" && stdinPrompt != "" {
-		return po.cmdPrompt + "\n" + stdinPrompt
-	} else if po.cmdPrompt != "" {
-		return po.cmdPrompt
-	} else if stdinPrompt != "" {
-		return stdinPrompt
+func makeFullPrompt(prompt string, context string) string {
+	if prompt != "" && context != "" {
+		return prompt + "\n" + context
+	} else if prompt != "" {
+		return prompt
+	} else if context != "" {
+		return context
 	}
 
 	return ""
