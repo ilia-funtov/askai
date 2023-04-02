@@ -39,22 +39,33 @@ func readOrAskAPIKeys(path string, progOptions *ProgramOptions) (map[string]stri
 			apiKeys[key] = config.GetString(key)
 		}
 
-		missedKeys := make([]string, 0, len(progOptions.engines))
-		for _, key := range progOptions.engines {
-			if _, exists := apiKeys[key]; !exists {
-				missedKeys = append(missedKeys, key)
-			}
-		}
-
-		newAPIKeys, err := askAndStoreAPIKeys(missedKeys, path, config)
-		if err == nil {
-			for key, value := range newAPIKeys {
-				apiKeys[key] = value
-			}
+		apiKeys, err = processMissedAPIKeys(apiKeys, progOptions.engines, path, config)
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	return apiKeys, nil
+}
+
+func processMissedAPIKeys(apiKeys map[string]string, engines []string, path string, config *viper.Viper) (map[string]string, error) {
+	missedKeys := make([]string, 0, len(engines))
+	for _, key := range engines {
+		if _, exists := apiKeys[key]; !exists {
+			missedKeys = append(missedKeys, key)
+		}
+	}
+
+	newAPIKeys, err := askAndStoreAPIKeys(missedKeys, path, config)
+	if err != nil {
+		return nil, err
+	}
+
+	for key, value := range apiKeys {
+		newAPIKeys[key] = value
+	}
+
+	return newAPIKeys, nil
 }
 
 func askAndStoreAPIKeys(engines []string, path string, config *viper.Viper) (map[string]string, error) {
