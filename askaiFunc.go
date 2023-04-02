@@ -153,6 +153,25 @@ func shortenText(text string, maxTokens int, engine AIEngine, aiModel string, ap
 	blockTokensNum := (tokensNum / numBlocks) - (tldrLen + 1)
 	parts := splitText(text, blockTokensNum)
 
+	shortenedText, err := shortenTextParts(parts, engine, aiModel, apiKey)
+	if err != nil {
+		return "", err
+	}
+
+	if shortenedText == "" {
+		return "", fmt.Errorf("text content was completely lost as a result of shortening")
+	}
+
+	if calcTokenNum(shortenedText) > maxTokens {
+		return shortenText(shortenedText, maxTokens, engine, aiModel, apiKey)
+	}
+
+	log.Tracef("Shortened text: %s", shortenedText)
+
+	return shortenedText, nil
+}
+
+func shortenTextParts(parts []string, engine AIEngine, aiModel string, apiKey string) (string, error) {
 	shortenedText := ""
 
 	for _, part := range parts {
@@ -176,17 +195,5 @@ func shortenText(text string, maxTokens int, engine AIEngine, aiModel string, ap
 		}
 	}
 
-	shortenedText = strings.TrimSpace(shortenedText)
-
-	if shortenedText == "" {
-		return "", fmt.Errorf("text content was completely lost as a result of shortening")
-	}
-
-	if calcTokenNum(shortenedText) > maxTokens {
-		return shortenText(shortenedText, maxTokens, engine, aiModel, apiKey)
-	}
-
-	log.Tracef("Shortened text: %s", shortenedText)
-
-	return shortenedText, nil
+	return strings.TrimSpace(shortenedText), nil
 }

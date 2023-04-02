@@ -24,18 +24,19 @@ func calcTokenNum(text string) int {
 		nonLettersNum++
 	}
 
-	for _, c := range runes[1:] {
-		if unicode.IsLetter(c) {
+	for _, r := range runes[1:] {
+		if unicode.IsLetter(r) {
 			if !unicode.IsLetter(charLast) {
 				letterTokenNum++
 			}
 		} else {
 			nonLettersNum++
 		}
-		charLast = c
+		charLast = r
 	}
 
-	tokensInText := int(math.Ceil(float64(letterTokenNum)*4.0/3.0)) + nonLettersNum // rough estimation
+	const wordsToTokensRatio = 4.0 / 3.0
+	tokensInText := int(math.Ceil(float64(letterTokenNum)*wordsToTokensRatio)) + nonLettersNum // rough estimation
 	return tokensInText
 }
 
@@ -59,25 +60,7 @@ func splitText(text string, maxTokenLen int) []string {
 		return []string{}
 	}
 
-	separators := []string{"...", ".", "!", "?"}
-
-	sentences := make([]string, 0)
-
-	runes := []rune(text)
-
-	i := 0
-	for j := 0; j < len(runes); j++ {
-		str := runes[j:]
-		for _, sep := range separators {
-			if strings.HasPrefix(string(str), sep) {
-				end := j + len(sep)
-				sentences = append(sentences, string(runes[i:end]))
-				i = end
-				j = i - 1
-				break
-			}
-		}
-	}
+	sentences := splitTextIntoSentences(text)
 
 	if len(sentences) == 0 {
 		return []string{text}
@@ -107,4 +90,28 @@ func splitText(text string, maxTokenLen int) []string {
 	}
 
 	return parts
+}
+
+func splitTextIntoSentences(text string) []string {
+	separators := []string{"...", ".", "!", "?"}
+
+	sentences := make([]string, 0)
+
+	runes := []rune(text)
+
+	i := 0
+	for j := 0; j < len(runes); j++ {
+		str := runes[j:]
+		for _, sep := range separators {
+			if strings.HasPrefix(string(str), sep) {
+				end := j + len(sep)
+				sentences = append(sentences, string(runes[i:end]))
+				i = end
+				j = i - 1
+				break
+			}
+		}
+	}
+
+	return sentences
 }

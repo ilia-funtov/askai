@@ -4,11 +4,18 @@ build:
 test:
 	go test
 
-lint:
-	golangci-lint run --enable-all
-
 run: build
 	bin/askai
+
+lint:
+	golangci-lint run --enable revive,gomnd,goimports,gosec,funlen,cyclop,gocognit,wrapcheck,errorlint
+
+lint-all:
+	golangci-lint run --enable-all
+
+vulncheck:
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	govulncheck .
 
 clean:
 	go clean

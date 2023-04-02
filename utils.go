@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -23,51 +24,62 @@ func getProgramUserDir() (string, error) {
 	return filepath.Join(user.HomeDir, "."+programName), nil
 }
 
-func readPromptFromStdin(po *ProgramOptions) (string, error) {
+func readPromptFromStdin(progOptions *ProgramOptions) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
 	if reader == nil {
 		return "", fmt.Errorf("bufio.NewReader failed")
 	}
 
 	var stdinPrompt string
+	var err error
 
 	isTerminal := isatty.IsTerminal(os.Stdin.Fd())
 
 	if isTerminal {
-		if po.cmdPrompt == "" && !po.batchMode {
+		if progOptions.cmdPrompt == "" && !progOptions.batchMode {
 			fmt.Println("Enter prompt to AI:")
 
-			var err error
 			stdinPrompt, err = reader.ReadString('\n')
 			if err != nil {
 				return "", fmt.Errorf("failed to read prompt from stdin: %w", err)
 			}
 		}
 	} else {
-		scanner := bufio.NewScanner(reader)
-		if scanner == nil {
-			return "", fmt.Errorf("bufio.NewScanner failed")
-		}
-
-		for scanner.Scan() {
-			if err := scanner.Err(); err != nil {
-				return "", fmt.Errorf("failed to read prompt from stdin: %w", err)
-			}
-
-			data := scanner.Bytes()
-			if !utf8.Valid(data) {
-				return "", fmt.Errorf("input from stdin is not valid utf-8")
-			}
-
-			text := string(data)
-			if stdinPrompt != "" && text != "" {
-				stdinPrompt += "\n"
-			}
-			stdinPrompt += text
+		stdinPrompt, err = readStreamedPrompt(reader)
+		if err != nil {
+			return "", err
 		}
 	}
 
 	return strings.TrimSpace(stdinPrompt), nil
+}
+
+func readStreamedPrompt(reader io.Reader) (string, error) {
+	scanner := bufio.NewScanner(reader)
+	if scanner == nil {
+		return "", fmt.Errorf("bufio.NewScanner failed")
+	}
+
+	var stdinPrompt string
+
+	for scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return "", fmt.Errorf("failed to read prompt from stdin: %w", err)
+		}
+
+		data := scanner.Bytes()
+		if !utf8.Valid(data) {
+			return "", fmt.Errorf("input from stdin is not valid utf-8")
+		}
+
+		text := string(data)
+		if stdinPrompt != "" && text != "" {
+			stdinPrompt += "\n"
+		}
+		stdinPrompt += text
+	}
+
+	return stdinPrompt, nil
 }
 
 func initLoggingToFile(programName string, configDir string, logFileDir string) *os.File {
@@ -111,7 +123,8 @@ func initLoggingToFileConfigless(logFilePath string, level log.Level) *os.File {
 	dirPath := filepath.Dir(logFilePath)
 
 	if fileInfo, err := os.Stat(dirPath); os.IsNotExist(err) || !fileInfo.IsDir() {
-		err := os.MkdirAll(dirPath, 0770)
+		const dirPermissionMask = 0770
+		err := os.MkdirAll(dirPath, dirPermissionMask)
 		if err != nil {
 			log.Warningf("failed to create log directory: %v", err)
 
@@ -119,7 +132,8 @@ func initLoggingToFileConfigless(logFilePath string, level log.Level) *os.File {
 		}
 	}
 
-	logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
+	const logfilePermissionMask = 0640
+	logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, logfilePermissionMask)
 	if err != nil {
 		log.Warningf("failed to create log file: %v", err)
 	}

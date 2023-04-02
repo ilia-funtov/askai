@@ -18,7 +18,7 @@ func askOpenAIChatCompletionModel(message UserMessage, model string, apiKey stri
 	}
 
 	ctx := context.Background()
-	c := gogpt.NewClient(apiKey)
+	client := gogpt.NewClient(apiKey)
 
 	completionMessage := gogpt.ChatCompletionMessage{Role: "user", Content: prompt}
 	messages := []gogpt.ChatCompletionMessage{completionMessage}
@@ -29,7 +29,7 @@ func askOpenAIChatCompletionModel(message UserMessage, model string, apiKey stri
 		Messages:  messages,
 	}
 
-	response, err := c.CreateChatCompletion(ctx, request)
+	response, err := client.CreateChatCompletion(ctx, request)
 	if err != nil {
 		return nil, fmt.Errorf("openai could not create chat completion: %w", err)
 	}
@@ -52,7 +52,7 @@ func askOpenAICompletionModel(message UserMessage, model string, apiKey string) 
 	}
 
 	ctx := context.Background()
-	c := gogpt.NewClient(apiKey)
+	client := gogpt.NewClient(apiKey)
 
 	request := gogpt.CompletionRequest{
 		Model:     model,
@@ -60,7 +60,7 @@ func askOpenAICompletionModel(message UserMessage, model string, apiKey string) 
 		Prompt:    prompt,
 	}
 
-	response, err := c.CreateCompletion(ctx, request)
+	response, err := client.CreateCompletion(ctx, request)
 	if err != nil {
 		return nil, fmt.Errorf("openai could not create text completion: %w", err)
 	}
