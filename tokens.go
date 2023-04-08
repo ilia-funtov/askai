@@ -5,9 +5,111 @@ import (
 	"math"
 	"strings"
 	"unicode"
+
+	"github.com/pkoukk/tiktoken-go"
 )
 
-func calcTokenNum(text string) int {
+const (
+	errorMessageCalcTokenNum = "Tokenizer.CalcTokenNum: %w"
+)
+
+type Tokenizer struct {
+	encoding string
+}
+
+func NewTokenizer(ecoding string) *Tokenizer {
+	return &Tokenizer{
+		encoding: ecoding,
+	}
+}
+
+func (t *Tokenizer) CalcTokenNum(text string) (int, error) {
+	if t.encoding == "" {
+		return calcTokenNumRoughly(text), nil
+	}
+
+	return calcTokenNumExact(text, t.encoding)
+}
+
+func (t *Tokenizer) CalcModelMaxResponseSize(prompt string, modelMaxTokens int) (int, error) {
+	tokensInPrompt, err := t.CalcTokenNum(prompt)
+	if err != nil {
+		return 0, fmt.Errorf(errorMessageCalcTokenNum, err)
+	}
+
+	maxResponseTokens := modelMaxTokens - tokensInPrompt
+	if maxResponseTokens <= 0 {
+		return 0, fmt.Errorf("too many tokens to process")
+	}
+
+	return maxResponseTokens, nil
+}
+
+func (t *Tokenizer) SplitText(text string, maxTokenLen int) ([]string, error) {
+	if maxTokenLen == 0 {
+		return []string{}, nil
+	}
+
+	textTokenNum, err := t.CalcTokenNum(text)
+	if err != nil {
+		return []string{}, fmt.Errorf(errorMessageCalcTokenNum, err)
+	}
+
+	if textTokenNum == 0 {
+		return []string{}, nil
+	}
+
+	sentences := splitTextIntoSentences(text)
+
+	if len(sentences) == 0 {
+		return []string{text}, nil
+	}
+
+	parts := make([]string, 0)
+
+	part := ""
+	partSize := 0
+
+	for _, sentence := range sentences {
+		tokenNum, err := t.CalcTokenNum(sentence)
+		if err != nil {
+			return []string{}, fmt.Errorf(errorMessageCalcTokenNum, err)
+		}
+
+		if (tokenNum + partSize) > maxTokenLen {
+			if len(part) > 0 {
+				parts = append(parts, part)
+			}
+			part = sentence
+			partSize = tokenNum
+		} else {
+			part += sentence
+			partSize += tokenNum
+		}
+	}
+
+	if len(part) > 0 {
+		parts = append(parts, part)
+	}
+
+	return parts, nil
+}
+
+func calcTokenNumExact(text string, encoding string) (int, error) {
+	if len(text) == 0 {
+		return 0, nil
+	}
+
+	tke, err := tiktoken.GetEncoding(encoding)
+	if err != nil {
+		return 0, fmt.Errorf("tiktoken.GetEncoding: %w", err)
+	}
+
+	tokens := tke.Encode(text, nil, nil)
+	return len(tokens), nil
+}
+
+func calcTokenNumRoughly(text string) int {
 	if len(text) == 0 {
 		return 0
 	}
@@ -38,58 +140,6 @@ func calcTokenNum(text string) int {
 	const wordsToTokensRatio = 4.0 / 3.0
 	tokensInText := int(math.Ceil(float64(letterTokenNum)*wordsToTokensRatio)) + nonLettersNum // rough estimation
 	return tokensInText
-}
-
-func calcModelMaxResponseSize(prompt string, modelMaxTokens int) (int, error) {
-	tokensInPrompt := calcTokenNum(prompt)
-	maxResponseTokens := modelMaxTokens - tokensInPrompt
-	if maxResponseTokens <= 0 {
-		return 0, fmt.Errorf("too many tokens to process")
-	}
-
-	return maxResponseTokens, nil
-}
-
-func splitText(text string, maxTokenLen int) []string {
-	if maxTokenLen == 0 {
-		return []string{}
-	}
-
-	textTokenNum := calcTokenNum(text)
-	if textTokenNum == 0 {
-		return []string{}
-	}
-
-	sentences := splitTextIntoSentences(text)
-
-	if len(sentences) == 0 {
-		return []string{text}
-	}
-
-	parts := make([]string, 0)
-
-	part := ""
-	partSize := 0
-
-	for _, sentence := range sentences {
-		tokenNum := calcTokenNum(sentence)
-		if (tokenNum + partSize) > maxTokenLen {
-			if len(part) > 0 {
-				parts = append(parts, part)
-			}
-			part = sentence
-			partSize = tokenNum
-		} else {
-			part += sentence
-			partSize += tokenNum
-		}
-	}
-
-	if len(part) > 0 {
-		parts = append(parts, part)
-	}
-
-	return parts
 }
 
 func splitTextIntoSentences(text string) []string {

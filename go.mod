@@ -5,18 +5,20 @@ go 1.20
 require (
 	github.com/cohere-ai/cohere-go v1.2.2
 	github.com/mattn/go-isatty v0.0.17
+	github.com/pkoukk/tiktoken-go v0.1.0
 	github.com/sashabaranov/go-gpt3 v1.3.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.15.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	golang.org/x/exp v0.0.0-20230304125523-9ff063c70017
 )
 
 require (
 	github.com/cohere-ai/tokenizer v1.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/dlclark/regexp2 v1.4.0 // indirect
+	github.com/dlclark/regexp2 v1.8.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect

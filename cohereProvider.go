@@ -11,7 +11,8 @@ const MaxTokensCohere = 2048
 func askCohere(message UserMessage, model string, apiKey string) ([]string, error) {
 	prompt := message.GetFullPrompt()
 
-	maxTokens, err := calcModelMaxResponseSize(prompt, MaxTokensCohere)
+	tok := NewTokenizer("")
+	maxTokens, err := tok.CalcModelMaxResponseSize(prompt, MaxTokensCohere)
 	if err != nil {
 		return nil, err
 	}
@@ -48,4 +49,18 @@ func (e *CohereEngine) AskAI(message UserMessage, model string, apiKey string) (
 
 func (e *CohereEngine) GetMaxTokenLimit(model string) int {
 	return MaxTokensCohere
+}
+
+func (e *CohereEngine) GetTokenizationEncoding(model string) (string, error) {
+	return "", nil
+}
+
+func (e *CohereEngine) CalcTokenNum(model string, text string) (int, error) {
+	tok := NewTokenizer("")
+	return tok.CalcTokenNum(text)
+}
+
+func (e *CohereEngine) SplitText(model string, text string, maxTokenLen int) ([]string, error) {
+	tok := NewTokenizer("")
+	return tok.SplitText(text, maxTokenLen)
 }

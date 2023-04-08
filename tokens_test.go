@@ -9,8 +9,13 @@ import (
 func TestSplitTextOne(t *testing.T) {
 	const text = "One sentence."
 
-	tokenLen := calcTokenNum(text)
-	parts := splitText(text, tokenLen)
+	tok := NewTokenizer("")
+
+	tokenLen, err := tok.CalcTokenNum(text)
+	assert.NoError(t, err)
+
+	parts, err := tok.SplitText(text, tokenLen)
+	assert.NoError(t, err)
 
 	assert.Equal(t, len(parts), 1)
 	assert.Equal(t, parts[0], text)
@@ -21,8 +26,13 @@ func TestSplitTextTwo(t *testing.T) {
 	const s2 = "Sentence two."
 	const text = s1 + s2
 
-	tokenLen := calcTokenNum(text)
-	parts := splitText(text, tokenLen/2)
+	tok := NewTokenizer("")
+
+	tokenLen, err := tok.CalcTokenNum(text)
+	assert.NoError(t, err)
+
+	parts, err := tok.SplitText(text, tokenLen/2)
+	assert.NoError(t, err)
 
 	assert.Equal(t, len(parts), 2)
 	assert.Equal(t, parts[0], s1)
@@ -35,8 +45,13 @@ func TestSplitTextThree(t *testing.T) {
 	const s3 = "Sentence three."
 	const text = s1 + s2 + s3
 
-	tokenLen := calcTokenNum(text)
-	parts := splitText(text, tokenLen/3)
+	tok := NewTokenizer("")
+
+	tokenLen, err := tok.CalcTokenNum(text)
+	assert.NoError(t, err)
+
+	parts, err := tok.SplitText(text, tokenLen/3)
+	assert.NoError(t, err)
 
 	assert.Equal(t, len(parts), 3)
 	assert.Equal(t, parts[0], s1)
@@ -53,8 +68,13 @@ func TestSplitTextMany(t *testing.T) {
 
 	const text = s1 + s2 + s3 + s4 + s5
 
-	tokenLen := calcTokenNum(text)
-	parts := splitText(text, tokenLen/5)
+	tok := NewTokenizer("")
+
+	tokenLen, err := tok.CalcTokenNum(text)
+	assert.NoError(t, err)
+
+	parts, err := tok.SplitText(text, tokenLen/5)
+	assert.NoError(t, err)
 
 	assert.Equal(t, len(parts), 5)
 	assert.Equal(t, parts[0], s1)
@@ -68,8 +88,13 @@ func TestSplitTextMessyPunctuation(t *testing.T) {
 	const text = "Some texts could be terrible with punctuation!!!Like this..........." +
 		"But what about that??????Oooo!!!???;;;!!....???So terrible.......!!!!!"
 
-	tokenLen := calcTokenNum(text)
-	parts := splitText(text, tokenLen/4)
+	tok := NewTokenizer("")
+
+	tokenLen, err := tok.CalcTokenNum(text)
+	assert.NoError(t, err)
+
+	parts, err := tok.SplitText(text, tokenLen/4)
+	assert.NoError(t, err)
 
 	recovered := ""
 	for _, part := range parts {
@@ -82,31 +107,46 @@ func TestSplitTextMessyPunctuation(t *testing.T) {
 func TestSplitTextOnlyPunctuation(t *testing.T) {
 	const text = "?????!!!!!"
 
-	parts := splitText(text, 1)
+	tok := NewTokenizer("")
+
+	parts, err := tok.SplitText(text, 1)
+	assert.NoError(t, err)
 
 	assert.Equal(t, len(parts), len(text))
 }
 
 func TestSplitTextEmpty(t *testing.T) {
+	tok := NewTokenizer("")
+
 	{
-		parts := splitText("", 10)
+		parts, err := tok.SplitText("", 10)
+		assert.NoError(t, err)
 		assert.Equal(t, len(parts), 0)
 	}
 
 	{
-		parts := splitText("text", 0)
+		parts, err := tok.SplitText("text", 0)
+		assert.NoError(t, err)
 		assert.Equal(t, len(parts), 0)
 	}
 }
 
 func TestSplitTextWord(t *testing.T) {
-	parts := splitText("word", 10)
+	tok := NewTokenizer("")
+
+	parts, err := tok.SplitText("word", 10)
+	assert.NoError(t, err)
+
 	assert.Equal(t, len(parts), 1)
 	assert.Equal(t, parts[0], "word")
 }
 
 func TestSplitTextEllipsis(t *testing.T) {
-	parts := splitText("...", 10)
+	tok := NewTokenizer("")
+
+	parts, err := tok.SplitText("...", 10)
+	assert.NoError(t, err)
+
 	assert.Equal(t, len(parts), 1)
 	assert.Equal(t, parts[0], "...")
 }

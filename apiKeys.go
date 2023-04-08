@@ -56,6 +56,10 @@ func processMissedAPIKeys(apiKeys map[string]string, engines []string, path stri
 		}
 	}
 
+	if len(missedKeys) == 0 {
+		return apiKeys, nil
+	}
+
 	newAPIKeys, err := askAndStoreAPIKeys(missedKeys, path, config)
 	if err != nil {
 		return nil, err

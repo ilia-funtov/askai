@@ -17,6 +17,9 @@ type UserMessage struct {
 type AIEngine interface {
 	AskAI(message UserMessage, model string, apiKey string) ([]string, error)
 	GetMaxTokenLimit(model string) int
+	GetTokenizationEncoding(model string) (string, error)
+	CalcTokenNum(model string, text string) (int, error)
+	SplitText(model string, text string, maxTokenLen int) ([]string, error)
 }
 
 type EngineCallResult struct {
@@ -104,14 +107,25 @@ func callAIEngine(aiProvider string, aiModel string, message UserMessage, apiKey
 	prompt := message.GetFullPrompt()
 	log.Infof("Asking %s: %s", engineKey, prompt)
 
-	tokensInFullPrompt := calcTokenNum(prompt)
+	tokensInFullPrompt, err := engine.CalcTokenNum(aiModel, prompt)
+	if err != nil {
+		return EngineCallResult{engineKey, nil, err}
+	}
+
 	tokenLimit := engine.GetMaxTokenLimit(aiModel)
 
 	if tokensInFullPrompt > tokenLimit {
 		log.Infof("Full prompt is too long, shortening it to %d tokens at max", tokenLimit)
 
-		tokensInPrompt := calcTokenNum(message.Prompt)
-		tokensInContext := calcTokenNum(message.Context)
+		tokensInPrompt, err := engine.CalcTokenNum(aiModel, message.Prompt)
+		if err != nil {
+			return EngineCallResult{engineKey, nil, err}
+		}
+
+		tokensInContext, err := engine.CalcTokenNum(aiModel, message.Context)
+		if err != nil {
+			return EngineCallResult{engineKey, nil, err}
+		}
 
 		shortenedPrompt, err := shortenText(message.Prompt, tokenLimit-tokensInContext-1, engine, aiModel, apiKey)
 		if err != nil {
@@ -140,18 +154,30 @@ func shortenText(text string, maxTokens int, engine AIEngine, aiModel string, ap
 		return "", nil
 	}
 
-	tokensNum := calcTokenNum(text)
+	const errorMessageCalcTokenNum = "AIEngine.CalcTokenNum failed: %w"
+
+	tokensNum, err := engine.CalcTokenNum(aiModel, text)
+	if err != nil {
+		return "", fmt.Errorf(errorMessageCalcTokenNum, err)
+	}
+
 	if tokensNum <= maxTokens {
 		return text, nil
 	}
 
 	log.Tracef("Shortening text: %s", text)
 
-	tldrLen := calcTokenNum(defaultTLDRPrompt)
+	tldrLen, err := engine.CalcTokenNum(aiModel, defaultTLDRPrompt)
+	if err != nil {
+		return "", fmt.Errorf(errorMessageCalcTokenNum, err)
+	}
 
 	numBlocks := int(math.Ceil(float64(tokensNum) / float64(maxTokens)))
 	blockTokensNum := (tokensNum / numBlocks) - (tldrLen + 1)
-	parts := splitText(text, blockTokensNum)
+	parts, err := engine.SplitText(aiModel, text, blockTokensNum)
+	if err != nil {
+		return "", fmt.Errorf("AIEngine.SplitText failed: %w", err)
+	}
 
 	shortenedText, err := shortenTextParts(parts, engine, aiModel, apiKey)
 	if err != nil {
@@ -162,7 +188,12 @@ func shortenText(text string, maxTokens int, engine AIEngine, aiModel string, ap
 		return "", fmt.Errorf("text content was completely lost as a result of shortening")
 	}
 
-	if calcTokenNum(shortenedText) > maxTokens {
+	shortLen, err := engine.CalcTokenNum(aiModel, shortenedText)
+	if err != nil {
+		return "", fmt.Errorf(errorMessageCalcTokenNum, err)
+	}
+
+	if shortLen > maxTokens {
 		return shortenText(shortenedText, maxTokens, engine, aiModel, apiKey)
 	}
 
