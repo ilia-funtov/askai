@@ -8,7 +8,10 @@ import (
 	gogpt "github.com/sashabaranov/go-gpt3"
 )
 
-const MaxTokensGPT3dot5Chat = 4096
+const MessageTokensNumChat = 7
+const ReservedTokensNumChat = MessageTokensNumChat + 1 // +1, otherwise API returns error 400
+
+const MaxTokensGPT3dot5Chat = 4096 - ReservedTokensNumChat
 const MaxTokensGPT3dot5 = 4000
 
 func askOpenAIChatCompletionModel(message UserMessage, model string, encoding string, apiKey string) ([]string, error) {
@@ -97,11 +100,10 @@ func (e *OpenAIEngine) AskAI(message UserMessage, model string, apiKey string) (
 }
 
 func (e *OpenAIEngine) GetMaxTokenLimit(model string) int {
-	switch model {
-	case gogpt.GPT3Dot5Turbo:
-	case gogpt.GPT3Dot5Turbo0301:
+	if model == gogpt.GPT3Dot5Turbo || model == gogpt.GPT3Dot5Turbo0301 {
 		return MaxTokensGPT3dot5Chat
 	}
+
 	return MaxTokensGPT3dot5
 }
 

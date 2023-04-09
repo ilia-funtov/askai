@@ -9,10 +9,6 @@ import (
 	"github.com/pkoukk/tiktoken-go"
 )
 
-const (
-	errorMessageCalcTokenNum = "Tokenizer.CalcTokenNum: %w"
-)
-
 type Tokenizer struct {
 	encoding string
 }

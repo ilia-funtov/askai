@@ -22,6 +22,10 @@ type AIEngine interface {
 	SplitText(model string, text string, maxTokenLen int) ([]string, error)
 }
 
+const (
+	errorMessageCalcTokenNum = "AIEngine.CalcTokenNum failed: %w"
+)
+
 type EngineCallResult struct {
 	engineKey string
 	responses []string
@@ -117,26 +121,12 @@ func callAIEngine(aiProvider string, aiModel string, message UserMessage, apiKey
 	if tokensInFullPrompt > tokenLimit {
 		log.Infof("Full prompt is too long, shortening it to %d tokens at max", tokenLimit)
 
-		tokensInPrompt, err := engine.CalcTokenNum(aiModel, message.Prompt)
+		pMessage, err := shortenMessage(message, tokenLimit, engine, aiModel, apiKey)
 		if err != nil {
 			return EngineCallResult{engineKey, nil, err}
 		}
 
-		tokensInContext, err := engine.CalcTokenNum(aiModel, message.Context)
-		if err != nil {
-			return EngineCallResult{engineKey, nil, err}
-		}
-
-		shortenedPrompt, err := shortenText(message.Prompt, tokenLimit-tokensInContext-1, engine, aiModel, apiKey)
-		if err != nil {
-			return EngineCallResult{engineKey, nil, err}
-		}
-		shortenedContext, err := shortenText(message.Context, tokenLimit-tokensInPrompt-1, engine, aiModel, apiKey)
-		if err != nil {
-			return EngineCallResult{engineKey, nil, err}
-		}
-
-		message = UserMessage{Prompt: shortenedPrompt, Context: shortenedContext}
+		message = *pMessage
 	}
 
 	responses, err := engine.AskAI(message, aiModel, apiKey)
@@ -149,12 +139,35 @@ func callAIEngine(aiProvider string, aiModel string, message UserMessage, apiKey
 	return EngineCallResult{engineKey, responses, err}
 }
 
+func shortenMessage(message UserMessage, tokenLimit int, engine AIEngine, aiModel string, apiKey string) (*UserMessage, error) {
+	tokensInPrompt, err := engine.CalcTokenNum(aiModel, message.Prompt)
+	if err != nil {
+		return nil, fmt.Errorf(errorMessageCalcTokenNum, err)
+	}
+
+	tokensInContext, err := engine.CalcTokenNum(aiModel, message.Context)
+	if err != nil {
+		return nil, fmt.Errorf(errorMessageCalcTokenNum, err)
+	}
+
+	shortenedPrompt, err := shortenText(message.Prompt, tokenLimit-tokensInContext-1, engine, aiModel, apiKey)
+	if err != nil {
+		return nil, err
+	}
+
+	shortenedContext, err := shortenText(message.Context, tokenLimit-tokensInPrompt-1, engine, aiModel, apiKey)
+	if err != nil {
+		return nil, err
+	}
+
+	message = UserMessage{Prompt: shortenedPrompt, Context: shortenedContext}
+	return &message, nil
+}
+
 func shortenText(text string, maxTokens int, engine AIEngine, aiModel string, apiKey string) (string, error) {
 	if text == "" || maxTokens <= 0 {
 		return "", nil
 	}
-
-	const errorMessageCalcTokenNum = "AIEngine.CalcTokenNum failed: %w"
 
 	tokensNum, err := engine.CalcTokenNum(aiModel, text)
 	if err != nil {
