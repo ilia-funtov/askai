@@ -18,10 +18,10 @@ type ProgramOptions struct {
 	noStdin       bool
 }
 
-func (po *ProgramOptions) add() {
+func (po *ProgramOptions) add(engine string) {
 	flag.StringVar(&po.cmdPrompt, "p", "", "Prompt to AI")
 	flag.BoolVar(&po.batchMode, "b", false, "Batch mode, do not ask for prompt if stdin is empty")
-	flag.StringVar(&po.aiEngineList, "e", defaultEngine, "AI engine to use")
+	flag.StringVar(&po.aiEngineList, "e", engine, "AI engine to use")
 	flag.BoolVar(&po.allEngines, "ea", false, "Use all supported AI engines")
 	flag.BoolVar(&po.printAIEngine, "pe", false, "Print engine name in output")
 	flag.BoolVar(&po.printPrompt, "pp", false, "Print prompt in output")

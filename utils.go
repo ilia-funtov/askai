@@ -12,7 +12,6 @@ import (
 
 	"github.com/mattn/go-isatty"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 func getProgramUserDir() (string, error) {
@@ -82,41 +81,24 @@ func readStreamedPrompt(reader io.Reader) (string, error) {
 	return stdinPrompt, nil
 }
 
-func initLoggingToFile(programName string, configDir string, logFileDir string) *os.File {
-	logLevel := log.InfoLevel
+func initLoggingToFile(config ProgramConfig) *os.File {
+	logFilePath := defaultLogFileName
 
-	viper := viper.New()
-
-	viper.SetConfigName(programName)
-	viper.AddConfigPath(configDir)
-
-	err := viper.ReadInConfig()
-
+	dir, err := filepath.Abs(config.LogDir)
 	if err == nil {
-		dir := viper.GetString("logdir")
-		if dir != "" {
-			dir, err = filepath.Abs(dir)
-			if err == nil {
-				logFileDir = dir
-			}
-		}
-
-		levelStr := viper.GetString("level")
-		level, err := log.ParseLevel(levelStr)
-		if err == nil {
-			logLevel = level
-		}
-
-		if viper.GetString("formatter") == "json" {
-			log.SetFormatter(&log.JSONFormatter{})
-		}
-	} else {
-		log.Warningf("failed to read log config file: %v", err)
+		logFilePath = filepath.Join(dir, defaultLogFileName)
 	}
 
-	logFilePath := filepath.Join(logFileDir, defaultLogFileName)
+	level, err := log.ParseLevel(config.LogLevel)
+	if err != nil {
+		level = log.InfoLevel
+	}
 
-	return initLoggingToFileConfigless(logFilePath, logLevel)
+	if config.LogFormatter == "json" {
+		log.SetFormatter(&log.JSONFormatter{})
+	}
+
+	return initLoggingToFileConfigless(logFilePath, level)
 }
 
 func initLoggingToFileConfigless(logFilePath string, level log.Level) *os.File {

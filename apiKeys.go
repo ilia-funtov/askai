@@ -4,51 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
-	"reflect"
 	"strings"
-
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
-func readOrAskAPIKeys(path string, progOptions *ProgramOptions) (map[string]string, error) {
-	config := viper.New()
-
-	dir, filename := filepath.Split(path)
-	config.SetConfigName(filename)
-	config.AddConfigPath(dir)
-
-	apiKeys := make(map[string]string)
-
-	err := config.ReadInConfig()
-
-	if err != nil {
-		errtype := reflect.TypeOf(err)
-		if !progOptions.batchMode && errtype == reflect.TypeOf(viper.ConfigFileNotFoundError{}) {
-			apiKeys, err = askAndStoreAPIKeys(progOptions.engines, path, config)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, fmt.Errorf("failed to open config file with API keys %s: %w", path, err)
-		}
-	} else {
-		allKeys := config.AllKeys()
-		for _, key := range allKeys {
-			apiKeys[key] = config.GetString(key)
-		}
-
-		apiKeys, err = processMissedAPIKeys(apiKeys, progOptions.engines, path, config)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return apiKeys, nil
-}
-
-func processMissedAPIKeys(apiKeys map[string]string, engines []string, path string, config *viper.Viper) (map[string]string, error) {
+func processMissedAPIKeys(apiKeys map[string]string, engines []string) (map[string]string, error) {
 	missedKeys := make([]string, 0, len(engines))
 	for _, key := range engines {
 		if _, exists := apiKeys[key]; !exists {
@@ -60,7 +19,7 @@ func processMissedAPIKeys(apiKeys map[string]string, engines []string, path stri
 		return apiKeys, nil
 	}
 
-	newAPIKeys, err := askAndStoreAPIKeys(missedKeys, path, config)
+	newAPIKeys, err := askAPIKeys(missedKeys)
 	if err != nil {
 		return nil, err
 	}
@@ -70,20 +29,6 @@ func processMissedAPIKeys(apiKeys map[string]string, engines []string, path stri
 	}
 
 	return newAPIKeys, nil
-}
-
-func askAndStoreAPIKeys(engines []string, path string, config *viper.Viper) (map[string]string, error) {
-	apiKeys, err := askAPIKeys(engines)
-	if err != nil {
-		return nil, err
-	}
-
-	err = storeAPIKeys(apiKeys, config, path)
-	if err != nil {
-		log.Warnf("failed to write API keys to %s: %v", path, err)
-	}
-
-	return apiKeys, nil
 }
 
 func askAPIKeys(engines []string) (map[string]string, error) {
@@ -119,25 +64,4 @@ func askAPIKeys(engines []string) (map[string]string, error) {
 	}
 
 	return apiKeys, nil
-}
-
-func storeAPIKeys(apiKeys map[string]string, config *viper.Viper, keysConfigPath string) error {
-	for provider, apiKey := range apiKeys {
-		config.Set(provider, apiKey)
-	}
-
-	ext := filepath.Ext(keysConfigPath)
-	if ext == "" {
-		if !strings.HasSuffix(keysConfigPath, ".") {
-			keysConfigPath += "."
-		}
-		keysConfigPath += defaultAPIKeysConfigExtension
-	}
-
-	err := config.WriteConfigAs(keysConfigPath)
-	if err != nil {
-		return fmt.Errorf("failed to write API keys to %s: %w", keysConfigPath, err)
-	}
-
-	return nil
 }

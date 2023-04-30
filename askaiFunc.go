@@ -41,7 +41,7 @@ func (message UserMessage) GetFullPrompt() string {
 	return makeFullPrompt(message.Prompt, message.Context)
 }
 
-func askAI(engines []string, message UserMessage, apiKeys map[string]string) (map[string][]string, error) {
+func askAI(engines []string, message UserMessage, config ProgramConfig) (map[string][]string, error) {
 	if len(engines) == 0 {
 		return nil, fmt.Errorf("no AI engine found")
 	}
@@ -54,16 +54,11 @@ func askAI(engines []string, message UserMessage, apiKeys map[string]string) (ma
 			return EngineCallResult{"", nil, err}
 		}
 
-		apiKey, exists := apiKeys[aiProvider]
-		if !exists {
-			return EngineCallResult{"", nil, fmt.Errorf("no API key found for %s", aiProvider)}
-		}
-
-		return callAIEngine(aiProvider, aiModel, message, apiKey)
+		return callAIEngine(aiProvider, aiModel, message, config)
 	}
 
 	if len(engines) == 1 {
-		callResult := processEngine(engines[0], message, apiKeys)
+		callResult := processEngine(engines[0], message, config.APIKeys)
 		if callResult.err != nil {
 			return nil, callResult.err
 		}
@@ -79,7 +74,7 @@ func askAI(engines []string, message UserMessage, apiKeys map[string]string) (ma
 	}
 
 	for _, engine := range engines {
-		go processEngineAsync(engine, message, apiKeys)
+		go processEngineAsync(engine, message, config.APIKeys)
 	}
 
 	for i := 0; i != len(engines); i++ {
@@ -92,10 +87,10 @@ func askAI(engines []string, message UserMessage, apiKeys map[string]string) (ma
 	return result, nil
 }
 
-func callAIEngine(aiProvider string, aiModel string, message UserMessage, apiKey string) EngineCallResult {
+func callAIEngine(aiProvider string, aiModel string, message UserMessage, config ProgramConfig) EngineCallResult {
 	if aiModel == "" {
 		var exists bool
-		aiModel, exists = defaultProviderModel[aiProvider]
+		aiModel, exists = config.ProviderModel[aiProvider]
 		if !exists {
 			return EngineCallResult{"", nil, fmt.Errorf("no provider model found for %s", aiProvider)}
 		}
@@ -106,6 +101,11 @@ func callAIEngine(aiProvider string, aiModel string, message UserMessage, apiKey
 	engine, exists := engineMap[aiProvider]
 	if !exists {
 		return EngineCallResult{engineKey, nil, fmt.Errorf("no engine found for %s", aiProvider)}
+	}
+
+	apiKey, exists := config.APIKeys[aiProvider]
+	if !exists {
+		return EngineCallResult{"", nil, fmt.Errorf("no API key found for %s", aiProvider)}
 	}
 
 	prompt := message.GetFullPrompt()
@@ -121,7 +121,7 @@ func callAIEngine(aiProvider string, aiModel string, message UserMessage, apiKey
 	if tokensInFullPrompt > tokenLimit {
 		log.Infof("Full prompt is too long, shortening it to %d tokens at max", tokenLimit)
 
-		pMessage, err := shortenMessage(message, tokenLimit, engine, aiModel, apiKey)
+		pMessage, err := shortenMessage(message, tokenLimit, engine, aiModel, apiKey, config.SummarizePrompt)
 		if err != nil {
 			return EngineCallResult{engineKey, nil, err}
 		}
@@ -139,7 +139,7 @@ func callAIEngine(aiProvider string, aiModel string, message UserMessage, apiKey
 	return EngineCallResult{engineKey, responses, err}
 }
 
-func shortenMessage(message UserMessage, tokenLimit int, engine AIEngine, aiModel string, apiKey string) (*UserMessage, error) {
+func shortenMessage(message UserMessage, tokenLimit int, engine AIEngine, aiModel string, apiKey string, tldrPrompt string) (*UserMessage, error) {
 	tokensInPrompt, err := engine.CalcTokenNum(aiModel, message.Prompt)
 	if err != nil {
 		return nil, fmt.Errorf(errorMessageCalcTokenNum, err)
@@ -150,12 +150,12 @@ func shortenMessage(message UserMessage, tokenLimit int, engine AIEngine, aiMode
 		return nil, fmt.Errorf(errorMessageCalcTokenNum, err)
 	}
 
-	shortenedPrompt, err := shortenText(message.Prompt, tokenLimit-tokensInContext-1, engine, aiModel, apiKey)
+	shortenedPrompt, err := shortenText(message.Prompt, tokenLimit-tokensInContext-1, engine, aiModel, apiKey, tldrPrompt)
 	if err != nil {
 		return nil, err
 	}
 
-	shortenedContext, err := shortenText(message.Context, tokenLimit-tokensInPrompt-1, engine, aiModel, apiKey)
+	shortenedContext, err := shortenText(message.Context, tokenLimit-tokensInPrompt-1, engine, aiModel, apiKey, tldrPrompt)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +164,7 @@ func shortenMessage(message UserMessage, tokenLimit int, engine AIEngine, aiMode
 	return &message, nil
 }
 
-func shortenText(text string, maxTokens int, engine AIEngine, aiModel string, apiKey string) (string, error) {
+func shortenText(text string, maxTokens int, engine AIEngine, aiModel string, apiKey string, tldrPrompt string) (string, error) {
 	if text == "" || maxTokens <= 0 {
 		return "", nil
 	}
@@ -180,7 +180,7 @@ func shortenText(text string, maxTokens int, engine AIEngine, aiModel string, ap
 
 	log.Tracef("Shortening text: %s", text)
 
-	tldrLen, err := engine.CalcTokenNum(aiModel, defaultTLDRPrompt)
+	tldrLen, err := engine.CalcTokenNum(aiModel, tldrPrompt)
 	if err != nil {
 		return "", fmt.Errorf(errorMessageCalcTokenNum, err)
 	}
@@ -192,7 +192,7 @@ func shortenText(text string, maxTokens int, engine AIEngine, aiModel string, ap
 		return "", fmt.Errorf("AIEngine.SplitText failed: %w", err)
 	}
 
-	shortenedText, err := shortenTextParts(parts, engine, aiModel, apiKey)
+	shortenedText, err := shortenTextParts(parts, engine, aiModel, apiKey, tldrPrompt)
 	if err != nil {
 		return "", err
 	}
@@ -207,7 +207,7 @@ func shortenText(text string, maxTokens int, engine AIEngine, aiModel string, ap
 	}
 
 	if shortLen > maxTokens {
-		return shortenText(shortenedText, maxTokens, engine, aiModel, apiKey)
+		return shortenText(shortenedText, maxTokens, engine, aiModel, apiKey, tldrPrompt)
 	}
 
 	log.Tracef("Shortened text: %s", shortenedText)
@@ -215,13 +215,13 @@ func shortenText(text string, maxTokens int, engine AIEngine, aiModel string, ap
 	return shortenedText, nil
 }
 
-func shortenTextParts(parts []string, engine AIEngine, aiModel string, apiKey string) (string, error) {
+func shortenTextParts(parts []string, engine AIEngine, aiModel string, apiKey string, tldrPrompt string) (string, error) {
 	shortenedText := ""
 
 	for _, part := range parts {
 		log.Tracef("Asking to shorten part: %s", part)
 
-		message := UserMessage{Prompt: defaultTLDRPrompt, Context: part}
+		message := UserMessage{Prompt: tldrPrompt, Context: part}
 		responses, err := engine.AskAI(message, aiModel, apiKey)
 		if err != nil {
 			log.Errorf("Engine %s returned error: %v", reflect.TypeOf(engine), err)

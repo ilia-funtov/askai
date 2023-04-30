@@ -3,59 +3,26 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
 
-type ProgramConfig struct {
-	apiKeys map[string]string
-}
-
-func initProgramConfig(progOptions ProgramOptions) (*ProgramConfig, error) {
-	userProgramDir, err := getProgramUserDir()
-	if err != nil {
-		return nil, err
-	}
-
-	// log file path if it is not set in config file
-	altLogFileDir := filepath.Join(
-		userProgramDir,
-		defaultLogDir)
-
-	configDir := filepath.Join(
-		userProgramDir,
-		defaultConfigDir)
-
-	initLoggingToFile(
-		programName,
-		configDir,
-		altLogFileDir)
-
-	apiKeysConfigFilePath := filepath.Join(
-		userProgramDir,
-		defaultConfigDir,
-		defaultAPIKeysConfigFileName)
-
-	apiKeys, err := readOrAskAPIKeys(apiKeysConfigFilePath, &progOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ProgramConfig{apiKeys: apiKeys}, nil
-}
-
 func run() error {
+	programConfig, err := initProgramConfig()
+	if err != nil {
+		return fmt.Errorf("failed to init program configuration: %w", err)
+	}
+
 	var progOptions ProgramOptions
-	progOptions.add()
+	progOptions.add(programConfig.Engine)
 	progOptions.parse()
 
 	log.Debugf("Program options: %v", progOptions)
 
-	programConfig, err := initProgramConfig(progOptions)
+	err = initAPIKeysConfig(progOptions, programConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to init API keys configuration: %w", err)
 	}
 
 	var stdinPrompt string
@@ -79,24 +46,24 @@ func run() error {
 		fmt.Printf("Prompt: %s", prompt)
 	}
 
-	responseMap, err := askAI(progOptions.engines, message, programConfig.apiKeys)
+	responseMap, err := askAI(progOptions.engines, message, *programConfig)
 	if err != nil {
 		return fmt.Errorf("failed to ask AI: %w", err)
 	}
 
-	printResponses(responseMap, progOptions)
+	printResponses(responseMap, progOptions, *programConfig)
 
 	return nil
 }
 
-func printResponses(responseMap map[string][]string, progOptions ProgramOptions) {
+func printResponses(responseMap map[string][]string, progOptions ProgramOptions, progConfig ProgramConfig) {
 	for engineKey, responses := range responseMap {
 		log.Infof("Engine: %s", engineKey)
 		log.Infof("Number of responses: %d", len(responses))
 		log.Tracef("Responses: %v", responses)
 
 		if progOptions.printAIEngine {
-			fmt.Printf(defaultPrintAIEngineTemplate, engineKey)
+			fmt.Println(fmt.Sprintf(progConfig.PrintAIEngineTemplate, engineKey))
 		}
 		for _, response := range responses {
 			fmt.Println(strings.TrimSpace(response))
