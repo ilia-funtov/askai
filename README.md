@@ -55,6 +55,11 @@ ilia:~/Projects/askai/bin$ man ls | ./askai "Summary"
 ls is a command line tool for displaying information about files and directories in the Linux operating system. It can display information such as file size, modification time, and file type. It can also be used to sort files by size, time, or name.
 ```
 
+If you want to use command line parameters, you must use -p parameter for the prompt.
+```
+ilia:~/Projects/askai/bin$ ./askai -p "What do you think about OpenAI's models?" -e cohere
+I think OpenAI's models are impressive. They have achieved human-level performance in a variety of tasks, including language translation and summarization, and they have the potential to revolutionize many industries. However, I also think that there are potential risks associated with these models. For example, they could be used to automate harmful tasks, such as warfare or mass surveillance. It is important to carefully consider the potential consequences of these models and to ensure that they are used in a responsible and ethical manner.
+```
 ## Configuration
 The program's configuraion is stored in user's home directory: ~/.askai/config/askai.json  
 Example of configuration:
