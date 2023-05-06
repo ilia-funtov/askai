@@ -1,3 +1,5 @@
+.PHONY: build test run lint lint-all clean vulncheck clean
+
 build:
 	go build -o bin/askai
 
