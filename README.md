@@ -15,6 +15,11 @@ go build -o bin/askai
 ```
 The binary can be found in bin directory.
 
+To install the binary:
+```
+ilia:~/Projects/askai$ make install
+```
+
 ## Usage
 Getting help.
 ```

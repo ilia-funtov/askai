@@ -3,6 +3,9 @@
 build:
 	go build -o bin/askai
 
+install:
+	go install
+
 test:
 	go test
 
