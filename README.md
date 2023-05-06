@@ -56,7 +56,7 @@ ls is a command line tool for displaying information about files and directories
 ```
 
 ## Configuration
-The program's configuraion is stored in user's home directory: ~/.askai/config/askai.json
+The program's configuraion is stored in user's home directory: ~/.askai/config/askai.json  
 Example of configuration:
 ```json
 {
