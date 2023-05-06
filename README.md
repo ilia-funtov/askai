@@ -65,6 +65,13 @@ If you want to use command line parameters, you must use -p parameter for the pr
 ilia:~/Projects/askai/bin$ ./askai -p "What do you think about OpenAI's models?" -e cohere
 I think OpenAI's models are impressive. They have achieved human-level performance in a variety of tasks, including language translation and summarization, and they have the potential to revolutionize many industries. However, I also think that there are potential risks associated with these models. For example, they could be used to automate harmful tasks, such as warfare or mass surveillance. It is important to carefully consider the potential consequences of these models and to ensure that they are used in a responsible and ethical manner.
 ```
+
+If you have installed the binary using "make install" then you can run askai from any directory.
+```
+ilia:~$ askai "Who am I?"
+You are a unique individual with your own thoughts, feelings, and experiences. You are a person with your own goals, interests, and beliefs. You are a member of a larger community and society, and your actions and words have an impact on those around you.
+```
+
 ## Configuration
 The program's configuraion is stored in user's home directory: ~/.askai/config/askai.json  
 Example of configuration:
