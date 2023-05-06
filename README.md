@@ -1,5 +1,5 @@
 # Askai
-Command line tool to ask AI for help
+Command line tool to ask AI for help.
 ## Description
 Askai is a tool with the command line interface to ask questions to AI provided by OpenAI and Cohere via REST API. It can read the user's prompt from its command line parameter or/and from stdin. The answer is printed to stdout. The question can be directed to one AI provider (OpenAI or Cohere) or both providers simultaneously. It is capable of processing of text inputs that are larger than maximum number of tokens supported by the given model. This is done by splitting the prompt into multiple text segments and making summary for each of them.
 
@@ -9,7 +9,7 @@ Prerequisites:
 - make
 
 Just run make command in the root directory of the project.
-```bash
+```
 ilia:~/Projects/askai$ make
 go build -o bin/askai
 ```
@@ -17,7 +17,7 @@ The binary can be found in bin directory.
 
 ## Usage
 Getting help.
-```bash
+```
 ilia:~/Projects/askai/bin$ ./askai --help
 Usage of ./askai:
   -b    Batch mode, do not ask for prompt if stdin is empty
@@ -36,13 +36,13 @@ Usage of ./askai:
 ```
 
 Asking a question.
-```bash
+```
 ilia:~/Projects/askai/bin$ ./askai "What does Cohere mean?"
 Cohere is an adjective that means sticking together firmly as parts.
 ```
 
 If the prompt is empty, it will be requested from stdin.
-```bash
+```
 ilia:~/Projects/askai/bin$ ./askai
 Enter prompt to AI:
 How are you?
@@ -50,7 +50,7 @@ I'm doing well, thank you. How about you?
 ```
 
 You can apply some prompt to the text redirected to stdin.
-```bash
+```
 ilia:~/Projects/askai/bin$ man ls | ./askai "Summary"
 ls is a command line tool for displaying information about files and directories in the Linux operating system. It can display information such as file size, modification time, and file type. It can also be used to sort files by size, time, or name.
 ```
@@ -74,7 +74,8 @@ Example of configuration:
     "loglevel": "trace",
     "logdir": "~/.askai/log",
     "logformat": ""
-}```
+}
+```
 
 - section "apikeys" contains API keys for Cohere and OpenAI. You can fill this information in configuration file or it will be asked on the first run.
 - parameter "engine" is used to specify the default engine to use (openai or cohere).
